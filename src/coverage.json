@@ -1,0 +1,67 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-02-12T17:32:47.466Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 4,
+    "implemented": 2,
+    "items": [
+      {
+        "id": "REQ-19",
+        "summary": "Replace the current predictable numeric public download tokens (e.g., \"/#/d/1\") with unique, unguessable 20-character tokens for every file, and invalidate all old numeric tokens so they no longer work.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-20",
+        "summary": "Regenerate and reassign new 20-character tokens for all existing stored files so that previously issued short links are invalidated, and ensure any necessary state upgrade/migration updates both stored metadata and the token index accordingly.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-21",
+        "summary": "Fix the public download link format and routing so that opening a copied public link reliably loads the public download route and triggers a working file download.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/utils/links.ts",
+          "frontend/src/pages/PublicDownloadPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/utils/links.ts",
+          "frontend/src/pages/PublicDownloadPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-22",
+        "summary": "Improve the PublicDownloadPage behavior so downloads start automatically when the page loads with a valid token, while still providing a manual Download button as fallback.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/PublicDownloadPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/PublicDownloadPage.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "backend/main.mo",
+    "backend/migration.mo",
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/pages/PublicDownloadPage.tsx",
+    "frontend/src/utils/links.ts",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

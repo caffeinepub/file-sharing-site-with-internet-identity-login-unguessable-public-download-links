@@ -1,0 +1,96 @@
+{
+  "kind": "build_request",
+  "title": "Fix public download links: unguessable 20-character tokens + working public download routing",
+  "priority": "high",
+  "requirements": [
+    {
+      "id": "REQ-19",
+      "text": "Replace the current predictable numeric public download tokens (e.g., \"/#/d/1\") with unique, unguessable 20-character tokens for every file, and invalidate all old numeric tokens so they no longer work.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "it means that the links are like this: /#/d/1 they should really be 20 random characters and unique.",
+          "replaced. d/1 are simply not safe."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After upload finalization, each file’s metadata publicToken is exactly 20 characters long.",
+        "Tokens are unique across all stored files; creating many uploads does not produce collisions.",
+        "Old numeric tokens (e.g., \"1\", \"2\") no longer successfully download files and return a clear error (trap) from downloadFile().",
+        "The backend token->file lookup map is consistent with file metadata (i.e., every file’s publicToken resolves to that file, and removed/old tokens do not resolve)."
+      ]
+    },
+    {
+      "id": "REQ-20",
+      "text": "Regenerate and reassign new 20-character tokens for all existing stored files so that previously issued short links are invalidated, and ensure any necessary state upgrade/migration updates both stored metadata and the token index accordingly.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "replaced. d/1 are simply not safe."
+        ]
+      },
+      "acceptanceCriteria": [
+        "After deploying the fix, existing files that previously had short numeric tokens now have new 20-character tokens.",
+        "Previously shared links using old tokens stop working for those existing files.",
+        "New links created from the UI (copy link) match the regenerated tokens and successfully download the file."
+      ]
+    },
+    {
+      "id": "REQ-21",
+      "text": "Fix the public download link format and routing so that opening a copied public link reliably loads the public download route and triggers a working file download.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "clicking links simply does nothing."
+        ]
+      },
+      "acceptanceCriteria": [
+        "The copied public link points to a URL that routes to the PublicDownloadPage (\"/d/$token\") in the deployed app, not a URL that leaves the app on the home route with an unhandled hash fragment.",
+        "Opening the copied link in a new tab shows the PublicDownloadPage and successfully downloads the file via actor.downloadFile(token).",
+        "If the token is invalid, the user sees an English error message on the PublicDownloadPage.",
+        "The existing Copy Link actions in both the user file list and admin file list produce working links."
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "text": "Improve the PublicDownloadPage behavior so downloads start automatically when the page loads with a valid token, while still providing a manual Download button as fallback.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "recent-messages"
+        ],
+        "quotes": [
+          "clicking links simply does nothing."
+        ]
+      },
+      "acceptanceCriteria": [
+        "When navigating to \"/d/<token>\", the page automatically initiates the download once (no infinite retries).",
+        "While downloading, the page displays a clear loading state; after triggering the browser download, it displays a success state.",
+        "The manual Download button remains available and works if auto-download fails or is cancelled."
+      ]
+    }
+  ],
+  "constraints": [
+    "Backend must remain a single Motoko actor with all logic in backend/main.mo; only add/modify backend/migration.mo if required for state upgrade.",
+    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
+    "Use English for any user-facing UI text."
+  ],
+  "nonGoals": [
+    "Do not implement or modify file deletion UI/actions in this change (defer delete links/buttons).",
+    "Do not add new authentication providers (Internet Identity only).",
+    "Do not add external databases or non-Motoko backend services."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

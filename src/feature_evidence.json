@@ -1,0 +1,44 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-fix-the-public-download-link-format-and-routing-so-that-opening-a-copied-public-link-reliably-loads-the-public-download-route-and-triggers-a-working-file-download",
+      "featureTitle": "Fix the public download link format and routing so that opening a copied public link reliably loads the public download route and triggers a working file download.",
+      "files": [
+        "frontend/src/pages/PublicDownloadPage.tsx",
+        "frontend/src/utils/links.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-21"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-improve-the-publicdownloadpage-behavior-so-downloads-start-automatically-when-the-page-loads-with-a-valid-token-while-still-providing-a-manual-download-button-as-fallback",
+      "featureTitle": "Improve the PublicDownloadPage behavior so downloads start automatically when the page loads with a valid token, while still providing a manual Download button as fallback.",
+      "files": [
+        "frontend/src/pages/PublicDownloadPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-22"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

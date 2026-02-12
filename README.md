@@ -1,2 +1,3 @@
-# file-sharing-site-with-internet-identity-login-unguessable-public-download-links
-Exported from Caffeine project: File sharing site with Internet Identity login, unguessable public download links, uploads dashboard, and global stats
+## 
+
+To run app build and run docker image: `docker build -t app . docker run -it --network host app`

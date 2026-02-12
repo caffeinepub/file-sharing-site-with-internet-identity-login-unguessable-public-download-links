@@ -1,0 +1,45 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Fix public download links routing and auto-download behavior",
+  "requirements": [
+    {
+      "id": "REQ-21",
+      "summary": "Make copied public download links use the correct path-based route (/d/$token) so opening them loads PublicDownloadPage and downloads work, with clear invalid-token errors.",
+      "acceptanceCriteria": [
+        "The copied public link points to a URL that routes to the PublicDownloadPage (\"/d/$token\") in the deployed app, not a URL that leaves the app on the home route with an unhandled hash fragment.",
+        "Opening the copied link in a new tab shows the PublicDownloadPage and successfully downloads the file via actor.downloadFile(token).",
+        "If the token is invalid, the user sees an English error message on the PublicDownloadPage.",
+        "The existing Copy Link actions in both the user file list and admin file list produce working links."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/utils/links.ts",
+          "operation": "modify",
+          "description": "Update buildPublicDownloadUrl(token) to generate path-based URLs using the app origin and \"/d/<token>\" (remove the \"#/\" hash fragment) so copied links route to the existing TanStack Router route (/d/$token)."
+        },
+        {
+          "path": "frontend/src/pages/PublicDownloadPage.tsx",
+          "operation": "modify",
+          "description": "Improve invalid-token handling to always show a clear English error message by using the existing error normalization utility (normalizeError) rather than raw error.message, while keeping the page on the /d/$token route."
+        }
+      ]
+    },
+    {
+      "id": "REQ-22",
+      "summary": "Auto-start downloads once when PublicDownloadPage loads with a valid token, while preserving a manual Download button fallback and clear loading/success states.",
+      "acceptanceCriteria": [
+        "When navigating to \"/d/<token>\", the page automatically initiates the download once (no infinite retries).",
+        "While downloading, the page displays a clear loading state; after triggering the browser download, it displays a success state.",
+        "The manual Download button remains available and works if auto-download fails or is cancelled."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/PublicDownloadPage.tsx",
+          "operation": "modify",
+          "description": "Add an auto-download effect that triggers download(token) once when the page loads and the actor is ready (use the existing useActor hook to gate the auto-run); ensure it does not re-trigger on rerenders (e.g., via a ref/flag) and keep the manual Download button functional as a fallback with existing loading/success UI states."
+        }
+      ]
+    }
+  ]
+}
