@@ -1,43 +1,36 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix public download links routing and auto-download behavior",
+  "title": "Frontend uses backend-provided public download tokens for /d/{token} links",
   "requirements": [
     {
-      "id": "REQ-21",
-      "summary": "Make copied public download links use the correct path-based route (/d/$token) so opening them loads PublicDownloadPage and downloads work, with clear invalid-token errors.",
+      "id": "REQ-3",
+      "summary": "Ensure public download links are always built and displayed using backend-provided file.publicToken and use the /d/{token} format (no client-side token generation).",
       "acceptanceCriteria": [
-        "The copied public link points to a URL that routes to the PublicDownloadPage (\"/d/$token\") in the deployed app, not a URL that leaves the app on the home route with an unhandled hash fragment.",
-        "Opening the copied link in a new tab shows the PublicDownloadPage and successfully downloads the file via actor.downloadFile(token).",
-        "If the token is invalid, the user sees an English error message on the PublicDownloadPage.",
-        "The existing Copy Link actions in both the user file list and admin file list produce working links."
+        "The \"Copy Link\" action continues to copy URLs in the format `${origin}/d/${file.publicToken}` (as built by frontend/src/utils/links.ts).",
+        "After uploading a new file, the token shown/used in the copied link is the new random token returned in the file list metadata (not a numeric string).",
+        "Visiting a copied link routes to the existing public download page and attempts download using the token from the URL."
       ],
       "file_operations": [
         {
           "path": "frontend/src/utils/links.ts",
           "operation": "modify",
-          "description": "Update buildPublicDownloadUrl(token) to generate path-based URLs using the app origin and \"/d/<token>\" (remove the \"#/\" hash fragment) so copied links route to the existing TanStack Router route (/d/$token)."
+          "description": "Harden buildPublicDownloadUrl(token) to strictly construct `${origin}/d/${token}` using the backend-provided token (no generation), including safe encoding of the token for URL usage while preserving the /d/{token} format."
+        },
+        {
+          "path": "frontend/src/components/files/MyFilesTable.tsx",
+          "operation": "modify",
+          "description": "Ensure the \"Copy Link\" UI always uses `file.publicToken` from backend metadata (never `file.id`), and add a small guard to disable/hide copying when `publicToken` is missing/empty with English user-facing messaging."
+        },
+        {
+          "path": "frontend/src/pages/AdminPage.tsx",
+          "operation": "modify",
+          "description": "Ensure admin \"Copy Link\" actions continue to use `file.publicToken` from backend metadata (never numeric IDs), and mirror the same missing/empty-token guard behavior as the user table for consistent UX."
         },
         {
           "path": "frontend/src/pages/PublicDownloadPage.tsx",
           "operation": "modify",
-          "description": "Improve invalid-token handling to always show a clear English error message by using the existing error normalization utility (normalizeError) rather than raw error.message, while keeping the page on the /d/$token route."
-        }
-      ]
-    },
-    {
-      "id": "REQ-22",
-      "summary": "Auto-start downloads once when PublicDownloadPage loads with a valid token, while preserving a manual Download button fallback and clear loading/success states.",
-      "acceptanceCriteria": [
-        "When navigating to \"/d/<token>\", the page automatically initiates the download once (no infinite retries).",
-        "While downloading, the page displays a clear loading state; after triggering the browser download, it displays a success state.",
-        "The manual Download button remains available and works if auto-download fails or is cancelled."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/PublicDownloadPage.tsx",
-          "operation": "modify",
-          "description": "Add an auto-download effect that triggers download(token) once when the page loads and the actor is ready (use the existing useActor hook to gate the auto-run); ensure it does not re-trigger on rerenders (e.g., via a ref/flag) and keep the manual Download button functional as a fallback with existing loading/success UI states."
+          "description": "Normalize the token read from the `/d/$token` route param (e.g., decode/trim) before invoking the existing download mutation, and keep routing behavior unchanged so copied links open the existing public download page and attempt download using the URL token."
         }
       ]
     }

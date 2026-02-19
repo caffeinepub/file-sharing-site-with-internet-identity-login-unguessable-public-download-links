@@ -1,96 +1,86 @@
 {
   "kind": "build_request",
-  "title": "Fix public download links: unguessable 20-character tokens + working public download routing",
-  "priority": "high",
+  "title": "Use permanent short random download tokens and disable legacy numeric download URLs",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-19",
-      "text": "Replace the current predictable numeric public download tokens (e.g., \"/#/d/1\") with unique, unguessable 20-character tokens for every file, and invalidate all old numeric tokens so they no longer work.",
+      "id": "REQ-1",
+      "text": "Update the backend to assign each uploaded file a permanent, short, random public download token (not derived from the numeric file ID), and use this token for all public downloads.",
       "target": "backend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "it means that the links are like this: /#/d/1 they should really be 20 random characters and unique.",
-          "replaced. d/1 are simply not safe."
+          "the url is still d/1 for the first file. it should be random name, so it cannot be guessed.",
+          "1 short random, 2 remain permanent"
         ]
       },
       "acceptanceCriteria": [
-        "After upload finalization, each file’s metadata publicToken is exactly 20 characters long.",
-        "Tokens are unique across all stored files; creating many uploads does not produce collisions.",
-        "Old numeric tokens (e.g., \"1\", \"2\") no longer successfully download files and return a clear error (trap) from downloadFile().",
-        "The backend token->file lookup map is consistent with file metadata (i.e., every file’s publicToken resolves to that file, and removed/old tokens do not resolve)."
+        "When a user uploads a new file, the stored FileMetadata.publicToken is a short random string (e.g., 8–12 URL-safe characters) and is not equal to the file ID rendered as text.",
+        "The token is generated once per file and does not change across subsequent downloads.",
+        "The backend ensures token uniqueness by checking the token->fileId index and regenerating on collision before finalizing storage."
       ]
     },
     {
-      "id": "REQ-20",
-      "text": "Regenerate and reassign new 20-character tokens for all existing stored files so that previously issued short links are invalidated, and ensure any necessary state upgrade/migration updates both stored metadata and the token index accordingly.",
+      "id": "REQ-2",
+      "text": "Disable legacy predictable numeric download URLs so that old tokens like \"1\" no longer work for public downloads, even if they exist in state.",
       "target": "backend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "replaced. d/1 are simply not safe."
+          "3 yes"
         ]
       },
       "acceptanceCriteria": [
-        "After deploying the fix, existing files that previously had short numeric tokens now have new 20-character tokens.",
-        "Previously shared links using old tokens stop working for those existing files.",
-        "New links created from the UI (copy link) match the regenerated tokens and successfully download the file."
+        "Calling downloadFile with a token that matches the legacy numeric pattern (e.g., \"1\", \"2\", etc.) fails with an error indicating the link is invalid/disabled.",
+        "A valid non-numeric token successfully downloads the file and continues to increment per-file and global download counters as it does today.",
+        "The tokens index used by downloadFile does not allow continued access via numeric tokens for newly uploaded files."
       ]
     },
     {
-      "id": "REQ-21",
-      "text": "Fix the public download link format and routing so that opening a copied public link reliably loads the public download route and triggers a working file download.",
+      "id": "REQ-3",
+      "text": "Ensure the frontend continues to generate and display public download links using the backend-provided token (no client-side token generation), and that copied links use the format /d/{token}.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "recent-messages"
         ],
         "quotes": [
-          "clicking links simply does nothing."
+          "the url is still d/1 for the first file. it should be random name"
         ]
       },
       "acceptanceCriteria": [
-        "The copied public link points to a URL that routes to the PublicDownloadPage (\"/d/$token\") in the deployed app, not a URL that leaves the app on the home route with an unhandled hash fragment.",
-        "Opening the copied link in a new tab shows the PublicDownloadPage and successfully downloads the file via actor.downloadFile(token).",
-        "If the token is invalid, the user sees an English error message on the PublicDownloadPage.",
-        "The existing Copy Link actions in both the user file list and admin file list produce working links."
-      ]
-    },
-    {
-      "id": "REQ-22",
-      "text": "Improve the PublicDownloadPage behavior so downloads start automatically when the page loads with a valid token, while still providing a manual Download button as fallback.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "recent-messages"
-        ],
-        "quotes": [
-          "clicking links simply does nothing."
-        ]
-      },
-      "acceptanceCriteria": [
-        "When navigating to \"/d/<token>\", the page automatically initiates the download once (no infinite retries).",
-        "While downloading, the page displays a clear loading state; after triggering the browser download, it displays a success state.",
-        "The manual Download button remains available and works if auto-download fails or is cancelled."
+        "The \"Copy Link\" action continues to copy URLs in the format `${origin}/d/${file.publicToken}` (as built by frontend/src/utils/links.ts).",
+        "After uploading a new file, the token shown/used in the copied link is the new random token returned in the file list metadata (not a numeric string).",
+        "Visiting a copied link routes to the existing public download page and attempts download using the token from the URL."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor with all logic in backend/main.mo; only add/modify backend/migration.mo if required for state upgrade.",
-    "Do not edit frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, frontend/src/components/ui.",
-    "Use English for any user-facing UI text."
+    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
+    "Do not edit any frontend files under frontend/src/components/ui or other paths listed in frontend.immutablePaths.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Do not implement or modify file deletion UI/actions in this change (defer delete links/buttons).",
-    "Do not add new authentication providers (Internet Identity only).",
-    "Do not add external databases or non-Motoko backend services."
+    "Adding new authentication methods beyond Internet Identity.",
+    "Adding a UI for rotating/regenerating tokens for already-uploaded files (not requested).",
+    "Implementing file deletion UI (explicitly deferred by the user earlier)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

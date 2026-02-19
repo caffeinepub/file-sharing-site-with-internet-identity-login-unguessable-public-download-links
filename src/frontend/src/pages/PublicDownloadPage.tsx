@@ -10,10 +10,13 @@ import { normalizeError } from '@/features/react-query/errorMessages';
 import { useEffect, useRef } from 'react';
 
 export default function PublicDownloadPage() {
-  const { token } = useParams({ from: '/d/$token' });
+  const { token: rawToken } = useParams({ from: '/d/$token' });
   const { actor, isFetching: actorFetching } = useActor();
   const { mutate: download, isPending, isSuccess, error } = useDownloadFile();
   const autoDownloadTriggered = useRef(false);
+
+  // Normalize the token: decode and trim
+  const token = rawToken ? decodeURIComponent(rawToken).trim() : '';
 
   // Auto-download effect: trigger once when actor is ready
   useEffect(() => {

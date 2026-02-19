@@ -1,12 +1,11 @@
 # Specification
 
 ## Summary
-**Goal:** Make public file download links secure (unguessable 20-character tokens) and ensure copied public links reliably route to a working public download page that triggers downloads.
+**Goal:** Make public download URLs unguessable by issuing a permanent short random token per file, and disable legacy numeric download links.
 
 **Planned changes:**
-- Replace predictable numeric public download tokens with unique 20-character tokens for all newly finalized uploads, ensuring uniqueness and rejecting/invalidating old numeric tokens.
-- Regenerate and reassign new 20-character tokens for all existing stored files via a state upgrade/migration so previously shared short links stop working.
-- Fix public link generation and routing so copied links resolve to the app’s public download route (`/d/<token>`) and open the PublicDownloadPage correctly.
-- Update PublicDownloadPage to auto-start a download once on load for valid tokens, show loading/success states, keep a manual Download button, and display a clear English error for invalid tokens.
+- Backend: Generate and store a short, URL-safe random public download token for each newly uploaded file, ensuring uniqueness via collision checks, and keep it permanent for that file.
+- Backend: Reject/disable legacy numeric download tokens (e.g., "1", "2") for public downloads so predictable links no longer work.
+- Frontend: Continue to build and display public download links using the backend-provided `publicToken`, and ensure copied links use `/d/{token}` (no client-side token generation).
 
-**User-visible outcome:** Copying a public link from user/admin file lists produces a secure URL that opens the public download page and automatically downloads the file; invalid or old links show a clear error instead of silently failing.
+**User-visible outcome:** After uploading a file, users get a permanent public download link like `/d/{randomToken}` that cannot be guessed; older numeric `/d/1`-style links no longer work.

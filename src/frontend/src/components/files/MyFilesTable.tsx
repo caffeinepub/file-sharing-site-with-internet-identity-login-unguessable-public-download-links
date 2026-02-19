@@ -14,6 +14,9 @@ export default function MyFilesTable() {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const handleCopyLink = async (token: string) => {
+    if (!token || token.trim() === '') {
+      return;
+    }
     const url = buildPublicDownloadUrl(token);
     const success = await copyToClipboard(url);
     if (success) {
@@ -74,34 +77,41 @@ export default function MyFilesTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {files.map((file) => (
-              <TableRow key={file.id.toString()}>
-                <TableCell className="font-medium">{file.originalFilename}</TableCell>
-                <TableCell>{formatBytes(file.byteSize)}</TableCell>
-                <TableCell>{formatTimestamp(file.createdAt)}</TableCell>
-                <TableCell className="text-right">{file.downloadCount.toString()}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopyLink(file.publicToken)}
-                    className="gap-2"
-                  >
-                    {copiedToken === file.publicToken ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copied
-                      </>
+            {files.map((file) => {
+              const hasValidToken = file.publicToken && file.publicToken.trim() !== '';
+              return (
+                <TableRow key={file.id.toString()}>
+                  <TableCell className="font-medium">{file.originalFilename}</TableCell>
+                  <TableCell>{formatBytes(file.byteSize)}</TableCell>
+                  <TableCell>{formatTimestamp(file.createdAt)}</TableCell>
+                  <TableCell className="text-right">{file.downloadCount.toString()}</TableCell>
+                  <TableCell>
+                    {hasValidToken ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyLink(file.publicToken)}
+                        className="gap-2"
+                      >
+                        {copiedToken === file.publicToken ? (
+                          <>
+                            <Check className="h-4 w-4" />
+                            Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            Copy Link
+                          </>
+                        )}
+                      </Button>
                     ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copy Link
-                      </>
+                      <span className="text-sm text-muted-foreground">No link available</span>
                     )}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

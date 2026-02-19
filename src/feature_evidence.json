@@ -2,9 +2,11 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-the-public-download-link-format-and-routing-so-that-opening-a-copied-public-link-reliably-loads-the-public-download-route-and-triggers-a-working-file-download",
-      "featureTitle": "Fix the public download link format and routing so that opening a copied public link reliably loads the public download route and triggers a working file download.",
+      "featureId": "feature-ensure-the-frontend-continues-to-generate-and-display-public-download-links-using-the-backend-provided-token-no-client-side-token-generation-and-that-copied-links-use-the-format-d-token",
+      "featureTitle": "Ensure the frontend continues to generate and display public download links using the backend-provided token (no client-side token generation), and that copied links use the format /d/{token}.",
       "files": [
+        "frontend/src/components/files/MyFilesTable.tsx",
+        "frontend/src/pages/AdminPage.tsx",
         "frontend/src/pages/PublicDownloadPage.tsx",
         "frontend/src/utils/links.ts"
       ],
@@ -17,26 +19,7 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-21"
-      ],
-      "confidence": "high"
-    },
-    {
-      "featureId": "feature-improve-the-publicdownloadpage-behavior-so-downloads-start-automatically-when-the-page-loads-with-a-valid-token-while-still-providing-a-manual-download-button-as-fallback",
-      "featureTitle": "Improve the PublicDownloadPage behavior so downloads start automatically when the page loads with a valid token, while still providing a manual Download button as fallback.",
-      "files": [
-        "frontend/src/pages/PublicDownloadPage.tsx"
-      ],
-      "components": [
-        "authorization@4.0.0",
-        "core-infrastructure@1.0.2",
-        "shadcn-ui@1.0.0",
-        "build-template-react@1.0.0",
-        "initial-app@1.0.0",
-        "github-export-icp-cli@1.0.0"
-      ],
-      "testIds": [
-        "REQ-22"
+        "REQ-3"
       ],
       "confidence": "high"
     }

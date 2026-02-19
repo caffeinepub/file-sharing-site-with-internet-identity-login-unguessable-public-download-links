@@ -1,50 +1,49 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T17:32:47.464Z",
-  "summary": "Frontend adds path-based public download URL builder (/d/<token>) and updates PublicDownloadPage to auto-trigger download once with loading/success/error UI. Backend adds a migration module and wires migration into main actor, but the diff does not show implementation of 20-character unguessable token generation, reassignment for existing files, or token-index consistency/invalidation behavior required by the BuildRequest.",
+  "generatedAt": "2026-02-13T17:24:41.136Z",
+  "summary": "Frontend changes implement /d/{token} link building (with URL encoding) and update copy-link behavior in file tables; PublicDownloadPage now decodes the token and auto-triggers downloads. Backend diff is truncated, so there is no clear evidence that permanent random token generation, uniqueness checks, or numeric-token disabling were implemented.",
   "missing_requirements": [
     {
-      "id": "REQ-19",
-      "requirement": "Replace predictable numeric public download tokens with unique, unguessable 20-character tokens for every file, and invalidate all old numeric tokens so they no longer work (including token->file lookup consistency and clear trap for old tokens).",
-      "reason": "backend/main.mo changes are truncated and do not show any token generation logic, enforcing 20-character length, uniqueness/collision handling, or explicit invalidation/trap behavior for old numeric tokens in downloadFile(). migration.mo also does not generate new tokens.",
+      "id": "REQ-1",
+      "requirement": "Update the backend to assign each uploaded file a permanent, short, random public download token (not derived from the numeric file ID), and use this token for all public downloads.",
+      "reason": "The backend diff excerpt shows the FileMetadata.publicToken field and a tokens map, but the provided truncated content does not include any upload/finalize logic that generates a short random token, ensures it is not derived from the file ID, or checks token uniqueness with collision regeneration.",
       "evidence": [
-        "backend/main.mo (truncated; no visible token generation/downloadFile changes)",
-        "backend/migration.mo (tokens map reset to empty; no token regeneration or metadata update)"
+        "backend/main.mo (truncated)"
       ]
     },
     {
-      "id": "REQ-20",
-      "requirement": "Regenerate and reassign new 20-character tokens for all existing stored files on upgrade, updating both stored metadata and the token index so previously issued links stop working and new links match regenerated tokens.",
-      "reason": "backend/migration.mo initializes a new empty tokens map but does not iterate existing files to assign new 20-character tokens, nor does it update each file’s metadata.publicToken to match a regenerated token index.",
+      "id": "REQ-2",
+      "requirement": "Disable legacy predictable numeric download URLs so that old tokens like \"1\" no longer work for public downloads, even if they exist in state.",
+      "reason": "The truncated backend diff does not show the downloadFile implementation or any explicit rejection of numeric-pattern tokens (e.g., \"1\"), nor changes demonstrating that numeric tokens are invalid/disabled.",
       "evidence": [
-        "backend/migration.mo (newTokens = Map.empty; files left as old.files; no reassignment logic)"
-      ]
-    },
-    {
-      "id": "REQ-21",
-      "requirement": "Ensure existing Copy Link actions (user file list and admin file list) produce working public links that route to PublicDownloadPage (/d/$token) and reliably download.",
-      "reason": "A new buildPublicDownloadUrl() helper is added, but the diff summary does not show MyFilesTable/AdminPage (or any copy-link UI) updated to use it; therefore it’s not evidenced that the existing Copy Link actions now produce the corrected /d/<token> links.",
-      "evidence": [
-        "frontend/src/utils/links.ts (added helper, but no shown call sites)",
-        "frontend-file-summaries.txt (mentions copyable links exist, but no diff showing they were changed)"
+        "backend/main.mo (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "State migration that clears the entire token index (tokens map) without regenerating/rebuilding it from file metadata.",
-      "reason": "BuildRequest requires regenerating and reassigning tokens for existing files and keeping token index consistent with metadata; the diff shows tokens reset to empty with no rebuild, which is an extra/incorrect behavior relative to the requested migration outcome.",
+      "description": "Public download page automatically triggers a download on page load (in addition to manual button).",
+      "reason": "REQ-3 only specifies routing to the existing public download page and attempting download using the token from the URL; it does not request auto-download behavior or the associated UI state changes.",
       "evidence": [
-        "backend/migration.mo (newTokens = Map.empty<FileToken, FileId>(); tokens = newTokens;)"
+        "frontend/src/pages/PublicDownloadPage.tsx"
+      ]
+    },
+    {
+      "description": "Token normalization/encoding behavior added (encode in link builder; decode+trim in PublicDownloadPage).",
+      "reason": "REQ-3 requires link format /d/{token} and using backend-provided token; it does not explicitly request URL encoding/decoding/whitespace trimming logic.",
+      "evidence": [
+        "frontend/src/utils/links.ts",
+        "frontend/src/pages/PublicDownloadPage.tsx"
       ]
     }
   ],
-  "confidence": 0.68,
+  "confidence": 0.66,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/components/files/MyFilesTable.tsx",
+    "frontend/src/pages/AdminPage.tsx",
     "frontend/src/pages/PublicDownloadPage.tsx",
     "frontend/src/utils/links.ts",
     "project_state.json"

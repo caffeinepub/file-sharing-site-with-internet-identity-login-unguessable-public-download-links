@@ -8,12 +8,10 @@ import Text "mo:core/Text";
 import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
-import Migration "migration";
+
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-// Apply migration on upgrade
-(with migration = Migration.run)
 actor {
   type FileId = Nat;
   type FileToken = Text;

@@ -1,147 +1,21 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 11,
-  "summary": "File sharing website: users register/login to upload files, view their uploads, see per-file and global download counts, and delete their own files. Public downloads are accessible only via unique random links. Front page shows global stats (file count, total size, overall downloads). First registered user is super-admin who can view and delete all files.",
+  "projectStateVersion": 3,
+  "summary": "Implement secure, non-guessable download URLs by assigning each uploaded file a permanent short random ID and disabling legacy predictable numeric URLs (e.g., d/1).",
   "architectural_notes": [
-    "Public downloads must be accessible only via unguessable random links; no public index/listing of files.",
-    "No limits on file size or file types (intentionally stress testing platform limits).",
-    "Public download tokens must be 20 random characters (unique/unguessable); replace prior short numeric tokens (e.g. /#/d/1) and invalidate old links."
+    "Use a permanent short random string as the file's public download identifier (generated on upload and stored with the file record).",
+    "Deprecate/disable legacy numeric download routes (e.g., /d/1) so old predictable URLs no longer resolve."
   ],
   "known_issues": [
-    "Admin view cannot currently display all files because backend lacks a getAllFiles() query/API.",
-    "Dashboard 'My Files' page (frontend/src/pages/DashboardPage.tsx) still shows the outdated backend-limitation message and does not display files; requires wiring to a working getCallerFiles() API and updating the UI accordingly.",
-    "Global platform statistics (file count, total bytes stored, total downloads) remain 0 despite uploads; global stats aggregation/update logic is incorrect or not wired to the upload/download flows.",
-    "Public download links are currently not randomized/unguessable (observed format /#/d/1); must be replaced with 20-character random tokens and old links invalidated.",
-    "Clicking a public download link currently does nothing (download flow/routing not functioning).",
-    "Delete action is currently missing in the UI (no delete button/link); user chose to defer this until after download links are fixed."
+    "Download URLs are currently predictable (e.g., d/1), making them guessable; needs replacement with permanent short random IDs and legacy URLs disabled."
   ],
   "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-implement-internet-identity-authentication-and-persist-an-application-level-user-record-keyed-by-caller-principal-designate-the-first-successfully-registered-principal-as-the-super-admin",
-      "title": "Implement Internet Identity authentication and persist an application-level user record keyed by caller principal; designate the first successfully registered principal as the super-admin.",
-      "reqIds": [
-        "REQ-1"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-support-large-file-transfers-by-implementing-chunked-upload-from-the-frontend-to-the-backend-init-upload-upload-chunk-s-finalize-upload-and-store-the-assembled-bytes-do-not-enforce-file-size-type-limits",
-      "title": "Support large file transfers by implementing chunked upload from the frontend to the backend (init upload, upload chunk(s), finalize upload) and store the assembled bytes; do not enforce file size/type limits.",
+      "id": "feature-ensure-the-frontend-continues-to-generate-and-display-public-download-links-using-the-backend-provided-token-no-client-side-token-generation-and-that-copied-links-use-the-format-d-token",
+      "title": "Ensure the frontend continues to generate and display public download links using the backend-provided token (no client-side token generation), and that copied links use the format /d/{token}.",
       "reqIds": [
         "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-public-file-download-via-the-unique-token-no-login-required-returning-the-stored-bytes-with-the-original-filename-and-increment-both-per-file-and-global-download-counters-exactly-once-per-successful-download-response",
-      "title": "Implement public file download via the unique token (no login required), returning the stored bytes with the original filename, and increment both per-file and global download counters exactly once per successful download response.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-file-deletion-with-permissions-the-uploader-can-delete-their-own-files-the-super-admin-can-view-and-delete-all-files-non-owners-who-are-not-super-admin-cannot-delete",
-      "title": "Implement file deletion with permissions: the uploader can delete their own files; the super-admin can view and delete all files; non-owners who are not super-admin cannot delete.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-a-public-home-page-that-displays-global-stats-total-number-of-uploaded-files-total-bytes-stored-sum-of-sizes-and-total-overall-downloads",
-      "title": "Create a public home page that displays global stats: total number of uploaded files, total bytes stored (sum of sizes), and total overall downloads.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-create-an-authenticated-user-dashboard-that-lists-only-the-caller-s-uploaded-files-with-key-metadata-filename-size-created-time-per-file-downloads-and-provides-actions-copy-public-link-download-via-link-and-delete-when-permitted",
-      "title": "Create an authenticated user dashboard that lists only the caller’s uploaded files with key metadata (filename, size, created time, per-file downloads) and provides actions: copy public link, download via link, and delete (when permitted).",
-      "reqIds": [
-        "REQ-7"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-super-admin-view-in-the-ui-that-is-visible-only-to-the-stored-super-admin-principal-and-shows-all-uploaded-files-with-the-same-actions-including-delete-and-metadata",
-      "title": "Add a super-admin view in the UI that is visible only to the stored super-admin principal and shows all uploaded files with the same actions (including delete) and metadata.",
-      "reqIds": [
-        "REQ-8"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-frontend-data-fetching-mutations-using-react-query-for-global-stats-my-files-list-admin-all-files-list-upload-lifecycle-delete-and-generating-copying-download-links-include-loading-and-error-states-for-each-view",
-      "title": "Implement frontend data fetching/mutations using React Query for: global stats, my files list, admin all-files list, upload lifecycle, delete, and generating/copying download links; include loading and error states for each view.",
-      "reqIds": [
-        "REQ-9"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-apply-a-coherent-distinctive-visual-theme-across-the-app-typography-spacing-color-palette-component-styling-appropriate-for-a-minimal-trustworthy-file-sharing-utility-avoid-blue-purple-as-dominant-colors",
-      "title": "Apply a coherent, distinctive visual theme across the app (typography, spacing, color palette, component styling) appropriate for a minimal, trustworthy file-sharing utility; avoid blue/purple as dominant colors.",
-      "reqIds": [
-        "REQ-10"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-generate-and-include-static-image-assets-for-the-app-stored-under-frontend-public-assets-generated-and-use-them-in-the-ui-where-appropriate-e-g-header-landing",
-      "title": "Generate and include static image assets for the app (stored under frontend/public/assets/generated) and use them in the UI where appropriate (e.g., header/landing).",
-      "reqIds": [
-        "REQ-11"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-admin-page-ui-to-call-the-backend-getallfiles-method-using-react-query-and-render-the-returned-list-of-files-instead-of-the-current-backend-limitation-notice",
-      "title": "Update the Admin page UI to call the backend getAllFiles() method (using React Query) and render the returned list of files instead of the current backend-limitation notice.",
-      "reqIds": [
-        "REQ-13"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-replace-the-placeholder-backend-limitations-getcallerfiles-note-in-frontend-src-components-files-myfilestable-tsx-with-an-actual-file-list-ui-powered-by-react-query-showing-the-caller-s-uploaded-files",
-      "title": "Replace the placeholder 'backend limitations / getCallerFiles()' note in frontend/src/components/files/MyFilesTable.tsx with an actual file list UI powered by React Query, showing the caller’s uploaded files.",
-      "reqIds": [
-        "REQ-15"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-implement-react-query-data-fetching-for-my-files-by-adding-or-updating-if-already-present-a-dedicated-hook-that-queries-actor-getcallerfiles-using-querykeys-myfiles-and-ensure-uploads-refresh-the-my-files-list",
-      "title": "Implement React Query data fetching for 'my files' by adding (or updating, if already present) a dedicated hook that queries actor.getCallerFiles() using queryKeys.myFiles, and ensure uploads refresh the 'My Files' list.",
-      "reqIds": [
-        "REQ-16"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-frontend-global-stats-query-to-use-the-new-backend-global-stats-method-so-the-home-page-platform-statistics-cards-show-correct-totals-after-uploads-and-downloads",
-      "title": "Update the frontend global stats query to use the new backend global stats method so the Home page 'Platform Statistics' cards show correct totals after uploads and downloads.",
-      "reqIds": [
-        "REQ-18"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-fix-the-public-download-link-format-and-routing-so-that-opening-a-copied-public-link-reliably-loads-the-public-download-route-and-triggers-a-working-file-download",
-      "title": "Fix the public download link format and routing so that opening a copied public link reliably loads the public download route and triggers a working file download.",
-      "reqIds": [
-        "REQ-21"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-improve-the-publicdownloadpage-behavior-so-downloads-start-automatically-when-the-page-loads-with-a-valid-token-while-still-providing-a-manual-download-button-as-fallback",
-      "title": "Improve the PublicDownloadPage behavior so downloads start automatically when the page loads with a valid token, while still providing a manual Download button as fallback.",
-      "reqIds": [
-        "REQ-22"
       ],
       "version": 1
     }
@@ -149,109 +23,28 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "User authentication with first registered user becoming super-admin",
+      "summary": "Generate permanent short random download IDs for files and disable legacy numeric URLs (e.g., d/1) so links cannot be guessed.",
       "reqIds": [],
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": "AR-2",
-      "summary": "File upload for logged-in users; store file metadata (uploader, size, created time)",
-      "reqIds": [],
+      "summary": "Update the backend to assign each uploaded file a permanent, short, random public download token (not derived from the numeric file ID), and use this token for all public downloads.",
+      "reqIds": [
+        "REQ-1"
+      ],
       "status": "pending"
     },
     {
       "id": "AR-3",
-      "summary": "Generate unique random, unguessable public download links per file",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Public file download via unique link with per-file and global download count tracking",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "User dashboard listing only the files they uploaded",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "File deletion permissions: uploader can delete own files; super-admin can view and delete all files",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-7",
-      "summary": "Front page global stats: number of files uploaded, total size, overall downloads",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-9",
-      "summary": "Create backend data model and APIs to store file metadata and file content on-canister, including: file id, uploader principal, original filename, byte size, created timestamp, per-file download count, and a separate unguessable public token used for downloads.",
+      "summary": "Disable legacy predictable numeric download URLs so that old tokens like \"1\" no longer work for public downloads, even if they exist in state.",
       "reqIds": [
         "REQ-2"
       ],
       "status": "pending"
-    },
-    {
-      "id": "AR-10",
-      "summary": "Add backend getAllFiles() query and update admin UI to display all uploaded files",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-11",
-      "summary": "Implement a backend canister query method getAllFiles() that returns metadata for all uploaded files, and restrict it to the super-admin (admin) principal.",
-      "reqIds": [
-        "REQ-12"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-12",
-      "summary": "Implement backend getCallerFiles() query/API to return the authenticated caller’s uploaded files metadata, and update the Dashboard 'My Files' UI (DashboardPage.tsx) to use it instead of showing the backend-limitation placeholder.",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-13",
-      "summary": "Add a backend query method getCallerFiles() that returns the authenticated caller’s uploaded FileMetadata list, so the frontend can display the real 'My Files' table instead of the backend-limitation placeholder.",
-      "reqIds": [
-        "REQ-14"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-14",
-      "summary": "Add a public backend query method that returns global platform statistics (total number of finalized uploaded files, total bytes stored across finalized files, and total overall downloads) so the Home page can display real values instead of placeholders.",
-      "reqIds": [
-        "REQ-17"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-15",
-      "summary": "Replace the current predictable numeric public download tokens (e.g., \"/#/d/1\") with unique, unguessable 20-character tokens for every file, and invalidate all old numeric tokens so they no longer work.",
-      "reqIds": [
-        "REQ-19"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-16",
-      "summary": "Regenerate and reassign new 20-character tokens for all existing stored files so that previously issued short links are invalidated, and ensure any necessary state upgrade/migration updates both stored metadata and the token index accordingly.",
-      "reqIds": [
-        "REQ-20"
-      ],
-      "status": "pending"
     }
   ],
-  "gameProjectType": "none",
-  "projectName": "File sharing site with Internet Identity login, unguessable public download links, uploads dashboard, and global stats",
+  "projectName": "Use permanent short random download tokens and disable legacy numeric download URLs",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

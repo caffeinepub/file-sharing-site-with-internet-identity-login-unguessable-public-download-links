@@ -1,50 +1,43 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-12T17:32:47.466Z",
+  "generatedAt": "2026-02-13T17:24:41.138Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 2,
+    "total": 3,
+    "implemented": 1,
     "items": [
       {
-        "id": "REQ-19",
-        "summary": "Replace the current predictable numeric public download tokens (e.g., \"/#/d/1\") with unique, unguessable 20-character tokens for every file, and invalidate all old numeric tokens so they no longer work.",
+        "id": "REQ-1",
+        "summary": "Update the backend to assign each uploaded file a permanent, short, random public download token (not derived from the numeric file ID), and use this token for all public downloads.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-20",
-        "summary": "Regenerate and reassign new 20-character tokens for all existing stored files so that previously issued short links are invalidated, and ensure any necessary state upgrade/migration updates both stored metadata and the token index accordingly.",
+        "id": "REQ-2",
+        "summary": "Disable legacy predictable numeric download URLs so that old tokens like \"1\" no longer work for public downloads, even if they exist in state.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-21",
-        "summary": "Fix the public download link format and routing so that opening a copied public link reliably loads the public download route and triggers a working file download.",
+        "id": "REQ-3",
+        "summary": "Ensure the frontend continues to generate and display public download links using the backend-provided token (no client-side token generation), and that copied links use the format /d/{token}.",
         "status": "implemented",
         "plannedFiles": [
           "frontend/src/utils/links.ts",
+          "frontend/src/components/files/MyFilesTable.tsx",
+          "frontend/src/pages/AdminPage.tsx",
           "frontend/src/pages/PublicDownloadPage.tsx"
         ],
         "matchedFiles": [
           "frontend/src/utils/links.ts",
-          "frontend/src/pages/PublicDownloadPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-22",
-        "summary": "Improve the PublicDownloadPage behavior so downloads start automatically when the page loads with a valid token, while still providing a manual Download button as fallback.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/PublicDownloadPage.tsx"
-        ],
-        "matchedFiles": [
+          "frontend/src/components/files/MyFilesTable.tsx",
+          "frontend/src/pages/AdminPage.tsx",
           "frontend/src/pages/PublicDownloadPage.tsx"
         ]
       }
@@ -52,11 +45,12 @@
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
+    "frontend/src/components/files/MyFilesTable.tsx",
+    "frontend/src/pages/AdminPage.tsx",
     "frontend/src/pages/PublicDownloadPage.tsx",
     "frontend/src/utils/links.ts",
     "project_state.json",
