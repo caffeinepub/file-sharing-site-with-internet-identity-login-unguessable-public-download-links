@@ -10,50 +10,84 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface CountStatistics {
-  'fileCount' : bigint,
-  'fileSize' : bigint,
-  'downloadCount' : bigint,
-}
+export type ExternalBlob = Uint8Array;
 export type FileId = bigint;
-export interface FileMetadata {
+export interface FileInfo {
   'id' : FileId,
-  'originalFilename' : string,
-  'createdAt' : Time,
-  'byteSize' : bigint,
-  'publicToken' : FileToken,
+  'token' : FileToken,
+  'name' : string,
+  'expiryTime' : [] | [Timestamp],
+  'size' : bigint,
+  'downloadCount' : bigint,
+  'uploadTime' : Timestamp,
+}
+export interface FileInfoAdmin {
+  'id' : FileId,
+  'token' : FileToken,
+  'name' : string,
+  'expiryTime' : [] | [Timestamp],
+  'size' : bigint,
   'uploader' : Principal,
   'downloadCount' : bigint,
+  'uploadTime' : Timestamp,
 }
 export type FileToken = string;
-export type Time = bigint;
+export interface PlatformCounts {
+  'totalFiles' : bigint,
+  'totalBytes' : bigint,
+  'totalDownloads' : bigint,
+}
+export type Timestamp = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface _ImmutableObjectStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _ImmutableObjectStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _ImmutableObjectStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
-  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  '_immutableObjectStorageBlobsAreLive' : ActorMethod<
+    [Array<Uint8Array>],
+    Array<boolean>
+  >,
+  '_immutableObjectStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_immutableObjectStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_immutableObjectStorageCreateCertificate' : ActorMethod<
+    [string],
+    _ImmutableObjectStorageCreateCertificateResult
+  >,
+  '_immutableObjectStorageRefillCashier' : ActorMethod<
+    [[] | [_ImmutableObjectStorageRefillInformation]],
+    _ImmutableObjectStorageRefillResult
+  >,
+  '_immutableObjectStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
+  '_initializeAccessControl' : ActorMethod<[], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'deleteFile' : ActorMethod<[FileId], undefined>,
-  'downloadFile' : ActorMethod<
-    [FileToken],
-    { 'originalFilename' : string, 'byteData' : Uint8Array }
-  >,
-  'finalizeUpload' : ActorMethod<[FileId], undefined>,
-  'getAllFiles' : ActorMethod<[], Array<FileMetadata>>,
-  'getCallerFiles' : ActorMethod<[], Array<FileMetadata>>,
+  'downloadFile' : ActorMethod<[FileToken], ExternalBlob>,
+  'getAllFiles' : ActorMethod<[], Array<FileInfoAdmin>>,
+  'getCallerFiles' : ActorMethod<[], Array<FileInfo>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
-  'getFileMetadata' : ActorMethod<[FileId], FileMetadata>,
-  'getFileToken' : ActorMethod<[FileId], FileToken>,
-  'getFileUploader' : ActorMethod<[FileId], Principal>,
-  'getPlatformCounts' : ActorMethod<[], CountStatistics>,
-  'getTotalDownloadCount' : ActorMethod<[], bigint>,
-  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
-  'initUpload' : ActorMethod<[string], FileId>,
+  'getPlatformCounts' : ActorMethod<[], PlatformCounts>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
-  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
-  'uploadChunk' : ActorMethod<[FileId, Uint8Array], undefined>,
+  'renameFile' : ActorMethod<[FileId, string], undefined>,
+  'saveCallerUserProfile' : ActorMethod<[string], undefined>,
+  'uploadFile' : ActorMethod<
+    [string, bigint, ExternalBlob, [] | [Timestamp]],
+    FileInfo
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

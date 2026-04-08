@@ -1,31 +1,75 @@
-import { useIsAdmin } from '@/features/admin/useIsAdmin';
-import { useAllFiles } from '@/features/files/useAllFiles';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Shield, Copy, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link } from '@tanstack/react-router';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatBytes, formatTimestamp } from '@/utils/format';
-import { buildPublicDownloadUrl, copyToClipboard } from '@/utils/links';
-import { normalizeError } from '@/features/react-query/errorMessages';
-import { useState } from 'react';
+import ExpiryBadge from "@/components/files/ExpiryBadge";
+import InlineRename from "@/components/files/InlineRename";
+import QRCodeModal from "@/components/files/QRCodeModal";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useIsAdmin } from "@/features/admin/useIsAdmin";
+import { useAllFiles } from "@/features/files/useAllFiles";
+import { useDeleteFile } from "@/features/files/useDeleteFile";
+import { normalizeError } from "@/features/react-query/errorMessages";
+import type { FileId } from "@/types";
+import { formatBytes, formatTimestamp } from "@/utils/format";
+import { buildPublicDownloadUrl, copyToClipboard } from "@/utils/links";
+import { Link } from "@tanstack/react-router";
+import {
+  AlertCircle,
+  Check,
+  Copy,
+  Loader2,
+  QrCode,
+  Shield,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function AdminPage() {
   const { data: isAdmin, isLoading: isAdminLoading } = useIsAdmin();
-  const { data: files, isLoading: filesLoading, error: filesError } = useAllFiles(isAdmin === true);
+  const {
+    data: files,
+    isLoading: filesLoading,
+    error: filesError,
+  } = useAllFiles(isAdmin === true);
+  const { mutate: deleteFile, isPending: isDeleting } = useDeleteFile();
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<FileId | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrFilename, setQrFilename] = useState<string | undefined>(undefined);
 
-  const handleCopyLink = async (token: string) => {
-    if (!token || token.trim() === '') {
-      return;
-    }
-    const url = buildPublicDownloadUrl(token);
+  const handleCopyLink = async (token: string, name: string) => {
+    if (!token) return;
+    const url = buildPublicDownloadUrl(token, name);
     const success = await copyToClipboard(url);
     if (success) {
       setCopiedToken(token);
       setTimeout(() => setCopiedToken(null), 2000);
+    } else {
+      toast.error("Could not copy link. Please copy it manually.", {
+        description: buildPublicDownloadUrl(token, name),
+        duration: 8000,
+      });
     }
+  };
+
+  const handleDelete = (fileId: FileId) => {
+    setDeletingId(fileId);
+    deleteFile(fileId, {
+      onSettled: () => setDeletingId(null),
+    });
+  };
+
+  const openQr = (token: string, name: string) => {
+    setQrUrl(buildPublicDownloadUrl(token, name));
+    setQrFilename(name);
   };
 
   if (isAdminLoading) {
@@ -58,10 +102,14 @@ export default function AdminPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex items-center gap-3">
-        <Shield className="w-8 h-8 text-primary" />
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Shield className="w-5 h-5 text-primary" />
+        </div>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage all files on the platform</p>
+          <p className="text-muted-foreground mt-1">
+            Manage all files on the platform
+          </p>
         </div>
       </div>
 
@@ -80,68 +128,129 @@ export default function AdminPage() {
           <Skeleton className="h-16 w-full" />
         </div>
       ) : files && files.length > 0 ? (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Filename</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Downloads</TableHead>
-                <TableHead>Public Link</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {files.map((file) => {
-                const hasValidToken = file.publicToken && file.publicToken.trim() !== '';
-                return (
-                  <TableRow key={file.id.toString()}>
-                    <TableCell className="font-medium">{file.originalFilename}</TableCell>
-                    <TableCell>{formatBytes(file.byteSize)}</TableCell>
-                    <TableCell>{formatTimestamp(file.createdAt)}</TableCell>
-                    <TableCell className="text-right">{file.downloadCount.toString()}</TableCell>
+        <>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {files.length} {files.length === 1 ? "file" : "files"} on platform
+            </span>
+          </div>
+          <div className="border border-border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Filename</TableHead>
+                  <TableHead>Uploader</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Uploaded</TableHead>
+                  <TableHead>Expiry</TableHead>
+                  <TableHead className="text-right">Downloads</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {files.map((file) => (
+                  <TableRow key={file.id.toString()} data-ocid="admin-file-row">
+                    <TableCell className="max-w-[160px]">
+                      <InlineRename fileId={file.id} currentName={file.name} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-xs max-w-[100px] truncate">
+                      {file.uploader.toString().slice(0, 14)}…
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatBytes(file.size)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {formatTimestamp(file.uploadTime)}
+                    </TableCell>
                     <TableCell>
-                      {hasValidToken ? (
+                      <ExpiryBadge expiryTime={file.expiryTime} />
+                    </TableCell>
+                    <TableCell className="text-right font-mono">
+                      {file.downloadCount.toString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {file.token ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                void handleCopyLink(file.token, file.name)
+                              }
+                              className="gap-1.5 text-xs"
+                              data-ocid="admin-copy-link-btn"
+                            >
+                              {copiedToken === file.token ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5 text-primary" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3.5 w-3.5" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openQr(file.token, file.name)}
+                              className="gap-1.5 text-xs"
+                              aria-label={`Show QR code for ${file.name}`}
+                              data-ocid="admin-qr-btn"
+                            >
+                              <QrCode className="h-3.5 w-3.5" />
+                              QR
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground px-2">
+                            No link
+                          </span>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleCopyLink(file.publicToken)}
-                          className="gap-2"
+                          onClick={() => handleDelete(file.id)}
+                          disabled={isDeleting && deletingId === file.id}
+                          className="gap-1.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                          data-ocid="admin-delete-file-btn"
+                          aria-label={`Delete ${file.name}`}
                         >
-                          {copiedToken === file.publicToken ? (
-                            <>
-                              <Check className="h-4 w-4" />
-                              Copied
-                            </>
+                          {isDeleting && deletingId === file.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           ) : (
-                            <>
-                              <Copy className="h-4 w-4" />
-                              Copy Link
-                            </>
+                            <Trash2 className="h-3.5 w-3.5" />
                           )}
+                          Delete
                         </Button>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No link available</span>
-                      )}
+                      </div>
                     </TableCell>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       ) : (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>No files have been uploaded yet.</AlertDescription>
-        </Alert>
+        <div
+          className="border border-dashed border-border rounded-lg p-10 text-center"
+          data-ocid="admin-empty-state"
+        >
+          <p className="text-muted-foreground text-sm">
+            No files have been uploaded yet.
+          </p>
+        </div>
       )}
 
-      {files && files.length > 0 && (
-        <div className="text-sm text-muted-foreground">
-          Total files: {files.length}
-        </div>
-      )}
+      <QRCodeModal
+        open={!!qrUrl}
+        onClose={() => setQrUrl(null)}
+        url={qrUrl ?? ""}
+        filename={qrFilename}
+      />
     </div>
   );
 }

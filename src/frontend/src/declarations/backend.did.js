@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _ImmutableObjectStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _ImmutableObjectStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _ImmutableObjectStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -15,61 +26,94 @@ export const UserRole = IDL.Variant({
 });
 export const FileId = IDL.Nat;
 export const FileToken = IDL.Text;
-export const Time = IDL.Int;
-export const FileMetadata = IDL.Record({
+export const ExternalBlob = IDL.Vec(IDL.Nat8);
+export const Timestamp = IDL.Int;
+export const FileInfoAdmin = IDL.Record({
   'id' : FileId,
-  'originalFilename' : IDL.Text,
-  'createdAt' : Time,
-  'byteSize' : IDL.Nat,
-  'publicToken' : FileToken,
+  'token' : FileToken,
+  'name' : IDL.Text,
+  'expiryTime' : IDL.Opt(Timestamp),
+  'size' : IDL.Nat,
   'uploader' : IDL.Principal,
   'downloadCount' : IDL.Nat,
+  'uploadTime' : Timestamp,
+});
+export const FileInfo = IDL.Record({
+  'id' : FileId,
+  'token' : FileToken,
+  'name' : IDL.Text,
+  'expiryTime' : IDL.Opt(Timestamp),
+  'size' : IDL.Nat,
+  'downloadCount' : IDL.Nat,
+  'uploadTime' : Timestamp,
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
-export const CountStatistics = IDL.Record({
-  'fileCount' : IDL.Nat,
-  'fileSize' : IDL.Nat,
-  'downloadCount' : IDL.Nat,
+export const PlatformCounts = IDL.Record({
+  'totalFiles' : IDL.Nat,
+  'totalBytes' : IDL.Nat,
+  'totalDownloads' : IDL.Nat,
 });
 
 export const idlService = IDL.Service({
-  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'deleteFile' : IDL.Func([FileId], [], []),
-  'downloadFile' : IDL.Func(
-      [FileToken],
-      [
-        IDL.Record({
-          'originalFilename' : IDL.Text,
-          'byteData' : IDL.Vec(IDL.Nat8),
-        }),
-      ],
-      [],
-    ),
-  'finalizeUpload' : IDL.Func([FileId], [], []),
-  'getAllFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
-  'getCallerFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
-  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-  'getFileMetadata' : IDL.Func([FileId], [FileMetadata], ['query']),
-  'getFileToken' : IDL.Func([FileId], [FileToken], ['query']),
-  'getFileUploader' : IDL.Func([FileId], [IDL.Principal], ['query']),
-  'getPlatformCounts' : IDL.Func([], [CountStatistics], ['query']),
-  'getTotalDownloadCount' : IDL.Func([], [IDL.Nat], ['query']),
-  'getUserProfile' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Opt(UserProfile)],
+  '_immutableObjectStorageBlobsAreLive' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [IDL.Vec(IDL.Bool)],
       ['query'],
     ),
-  'initUpload' : IDL.Func([IDL.Text], [FileId], []),
+  '_immutableObjectStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_immutableObjectStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_immutableObjectStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_ImmutableObjectStorageCreateCertificateResult],
+      [],
+    ),
+  '_immutableObjectStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_ImmutableObjectStorageRefillInformation)],
+      [_ImmutableObjectStorageRefillResult],
+      [],
+    ),
+  '_immutableObjectStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+  '_initializeAccessControl' : IDL.Func([], [], []),
+  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'deleteFile' : IDL.Func([FileId], [], []),
+  'downloadFile' : IDL.Func([FileToken], [ExternalBlob], []),
+  'getAllFiles' : IDL.Func([], [IDL.Vec(FileInfoAdmin)], ['query']),
+  'getCallerFiles' : IDL.Func([], [IDL.Vec(FileInfo)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getPlatformCounts' : IDL.Func([], [PlatformCounts], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-  'uploadChunk' : IDL.Func([FileId, IDL.Vec(IDL.Nat8)], [], []),
+  'renameFile' : IDL.Func([FileId, IDL.Text], [], []),
+  'saveCallerUserProfile' : IDL.Func([IDL.Text], [], []),
+  'uploadFile' : IDL.Func(
+      [IDL.Text, IDL.Nat, ExternalBlob, IDL.Opt(Timestamp)],
+      [FileInfo],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _ImmutableObjectStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _ImmutableObjectStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _ImmutableObjectStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
@@ -77,56 +121,78 @@ export const idlFactory = ({ IDL }) => {
   });
   const FileId = IDL.Nat;
   const FileToken = IDL.Text;
-  const Time = IDL.Int;
-  const FileMetadata = IDL.Record({
+  const ExternalBlob = IDL.Vec(IDL.Nat8);
+  const Timestamp = IDL.Int;
+  const FileInfoAdmin = IDL.Record({
     'id' : FileId,
-    'originalFilename' : IDL.Text,
-    'createdAt' : Time,
-    'byteSize' : IDL.Nat,
-    'publicToken' : FileToken,
+    'token' : FileToken,
+    'name' : IDL.Text,
+    'expiryTime' : IDL.Opt(Timestamp),
+    'size' : IDL.Nat,
     'uploader' : IDL.Principal,
     'downloadCount' : IDL.Nat,
+    'uploadTime' : Timestamp,
+  });
+  const FileInfo = IDL.Record({
+    'id' : FileId,
+    'token' : FileToken,
+    'name' : IDL.Text,
+    'expiryTime' : IDL.Opt(Timestamp),
+    'size' : IDL.Nat,
+    'downloadCount' : IDL.Nat,
+    'uploadTime' : Timestamp,
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
-  const CountStatistics = IDL.Record({
-    'fileCount' : IDL.Nat,
-    'fileSize' : IDL.Nat,
-    'downloadCount' : IDL.Nat,
+  const PlatformCounts = IDL.Record({
+    'totalFiles' : IDL.Nat,
+    'totalBytes' : IDL.Nat,
+    'totalDownloads' : IDL.Nat,
   });
   
   return IDL.Service({
-    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'deleteFile' : IDL.Func([FileId], [], []),
-    'downloadFile' : IDL.Func(
-        [FileToken],
-        [
-          IDL.Record({
-            'originalFilename' : IDL.Text,
-            'byteData' : IDL.Vec(IDL.Nat8),
-          }),
-        ],
-        [],
-      ),
-    'finalizeUpload' : IDL.Func([FileId], [], []),
-    'getAllFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
-    'getCallerFiles' : IDL.Func([], [IDL.Vec(FileMetadata)], ['query']),
-    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
-    'getFileMetadata' : IDL.Func([FileId], [FileMetadata], ['query']),
-    'getFileToken' : IDL.Func([FileId], [FileToken], ['query']),
-    'getFileUploader' : IDL.Func([FileId], [IDL.Principal], ['query']),
-    'getPlatformCounts' : IDL.Func([], [CountStatistics], ['query']),
-    'getTotalDownloadCount' : IDL.Func([], [IDL.Nat], ['query']),
-    'getUserProfile' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Opt(UserProfile)],
+    '_immutableObjectStorageBlobsAreLive' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [IDL.Vec(IDL.Bool)],
         ['query'],
       ),
-    'initUpload' : IDL.Func([IDL.Text], [FileId], []),
+    '_immutableObjectStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_immutableObjectStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_immutableObjectStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_ImmutableObjectStorageCreateCertificateResult],
+        [],
+      ),
+    '_immutableObjectStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_ImmutableObjectStorageRefillInformation)],
+        [_ImmutableObjectStorageRefillResult],
+        [],
+      ),
+    '_immutableObjectStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
+    '_initializeAccessControl' : IDL.Func([], [], []),
+    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'deleteFile' : IDL.Func([FileId], [], []),
+    'downloadFile' : IDL.Func([FileToken], [ExternalBlob], []),
+    'getAllFiles' : IDL.Func([], [IDL.Vec(FileInfoAdmin)], ['query']),
+    'getCallerFiles' : IDL.Func([], [IDL.Vec(FileInfo)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getPlatformCounts' : IDL.Func([], [PlatformCounts], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
-    'uploadChunk' : IDL.Func([FileId, IDL.Vec(IDL.Nat8)], [], []),
+    'renameFile' : IDL.Func([FileId, IDL.Text], [], []),
+    'saveCallerUserProfile' : IDL.Func([IDL.Text], [], []),
+    'uploadFile' : IDL.Func(
+        [IDL.Text, IDL.Nat, ExternalBlob, IDL.Opt(Timestamp)],
+        [FileInfo],
+        [],
+      ),
   });
 };
 

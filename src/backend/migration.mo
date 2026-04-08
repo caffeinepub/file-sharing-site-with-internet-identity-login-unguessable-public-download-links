@@ -1,77 +1,69 @@
 import Map "mo:core/Map";
-import Set "mo:core/Set";
-import Blob "mo:core/Blob";
-import Nat "mo:core/Nat";
-import Text "mo:core/Text";
-import Principal "mo:core/Principal";
-import Time "mo:core/Time";
-import AccessControl "authorization/access-control";
+import Storage "mo:caffeineai-object-storage/Storage";
+import Types "./types/file-sharing";
 
+/// Migration from v1 (no expiryTime, no var originalFilename)
+/// to v2 (expiryTime : ?Timestamp, var originalFilename).
 module {
-  public type FileId = Nat;
-  public type FileToken = Text;
+  // ── Old types (copied from .old/src/backend/types/file-sharing.mo) ─────────
+  type OldFileId    = Nat;
+  type OldFileToken = Text;
+  type OldTimestamp = Int;
 
-  public type FileState = { #uploading : { chunks : [Blob] }; #finalized : { content : Blob } };
-
-  public type FileMetadata = {
-    id : FileId;
-    uploader : Principal;
-    originalFilename : Text;
-    byteSize : Nat;
-    createdAt : Time.Time;
-    downloadCount : Nat;
-    publicToken : FileToken;
+  type OldFileMetadata = {
+    id            : OldFileId;
+    uploader      : Principal;
+    originalFilename : Text;          // immutable in old version
+    byteSize      : Nat;
+    createdAt     : OldTimestamp;
+    var downloadCount : Nat;
+    publicToken   : OldFileToken;
+    blob          : Storage.ExternalBlob;
+    // expiryTime was absent in the old version
   };
 
-  public type FinishedFile = {
-    id : FileId;
-    fileContent : Blob;
-    uploader : Principal;
-    originalFilename : Text;
-    byteSize : Nat;
-    createdAt : Time.Time;
+  type OldUserProfile = { name : Text };
+
+  type OldActor = {
+    files        : Map.Map<OldFileId,    OldFileMetadata>;
+    tokenIndex   : Map.Map<OldFileToken, OldFileId>;
+    userProfiles : Map.Map<Principal,    OldUserProfile>;
+    nextFileId         : { var value : Nat };
+    totalDownloadCount : { var value : Nat };
   };
 
-  public type UserProfile = {
-    name : Text;
+  // ── New types (matching current types/file-sharing.mo) ──────────────────────
+  type NewActor = {
+    files        : Map.Map<Types.FileId,    Types.FileMetadata>;
+    tokenIndex   : Map.Map<Types.FileToken, Types.FileId>;
+    userProfiles : Map.Map<Principal,       Types.UserProfile>;
+    nextFileId         : { var value : Nat };
+    totalDownloadCount : { var value : Nat };
   };
 
-  public type Actor = {
-    files : Map.Map<FileId, FileMetadata>;
-    fileStates : Map.Map<FileId, FileState>;
-    tokens : Map.Map<FileToken, FileId>;
-    finishedFiles : Map.Map<FileId, FinishedFile>;
-    activeUploads : Set.Set<FileId>;
-    userProfiles : Map.Map<Principal, UserProfile>;
-    lastFileId : Nat;
-    totalDownloadCounter : Nat;
-    accessControlState : AccessControl.AccessControlState;
-  };
-
-  public func run(old : Actor) : Actor {
-    let maxChunkSize = 100_000_000;
-    let maxChunksPerFile = 10_000;
-
-    let newFiles = old.files;
-    let newFileStates = old.fileStates;
-    let newTokens = Map.empty<FileToken, FileId>();
-    let newFinishedFiles = old.finishedFiles;
-    let newActiveUploads = old.activeUploads;
-    let newUserProfiles = old.userProfiles;
-    let newLastFileId = old.lastFileId;
-    let newTotalDownloadCounter = old.totalDownloadCounter;
-    let newAccessControlState = old.accessControlState;
-
+  public func run(old : OldActor) : NewActor {
+    // Migrate each FileMetadata: add expiryTime = null, make originalFilename var
+    let newFiles = old.files.map<OldFileId, OldFileMetadata, Types.FileMetadata>(
+      func(_id, m) {
+        {
+          id            = m.id;
+          uploader      = m.uploader;
+          var originalFilename = m.originalFilename;
+          byteSize      = m.byteSize;
+          createdAt     = m.createdAt;
+          var downloadCount = m.downloadCount;
+          publicToken   = m.publicToken;
+          blob          = m.blob;
+          expiryTime    = null;   // default: no expiry
+        }
+      }
+    );
     {
-      files = newFiles;
-      fileStates = newFileStates;
-      tokens = newTokens;
-      finishedFiles = newFinishedFiles;
-      activeUploads = newActiveUploads;
-      userProfiles = newUserProfiles;
-      lastFileId = newLastFileId;
-      totalDownloadCounter = newTotalDownloadCounter;
-      accessControlState = newAccessControlState;
-    };
+      files        = newFiles;
+      tokenIndex   = old.tokenIndex;
+      userProfiles = old.userProfiles;
+      nextFileId         = old.nextFileId;
+      totalDownloadCount = old.totalDownloadCount;
+    }
   };
 };

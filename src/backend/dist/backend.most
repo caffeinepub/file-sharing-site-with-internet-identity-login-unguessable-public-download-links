@@ -1,0 +1,91 @@
+// Version: 3.0.0
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type ExternalBlob__246066408 = Blob;
+type FileId__283657257 = Nat;
+type FileId__681598994 = FileId__283657257;
+type FileMetadata__690150775 =
+  {
+    blob : ExternalBlob__246066408;
+    byteSize : Nat;
+    createdAt : Timestamp__527237838;
+    var downloadCount : Nat;
+    expiryTime : ?Timestamp__527237838;
+    id : FileId__681598994;
+    var originalFilename : Text;
+    publicToken : FileToken__265069520;
+    uploader : Principal
+  };
+type FileToken__265069520 = FileToken__420325514;
+type FileToken__420325514 = Text;
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type Map__158565046<K, V> = Map__297112838<K, V>;
+type Map__297112838<K, V> =
+  {var root : Node__46230540<K, V>; var size : Nat__490723111};
+type Map__605269027<K, V> = Map__158565046<K, V>;
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type OldFileId__860741176 = Nat;
+type OldFileMetadata__1048324045 =
+  {
+    blob : ExternalBlob__246066408;
+    byteSize : Nat;
+    createdAt : OldTimestamp__27916213;
+    var downloadCount : Nat;
+    id : OldFileId__860741176;
+    originalFilename : Text;
+    publicToken : OldFileToken__1008643063;
+    uploader : Principal
+  };
+type OldFileToken__1008643063 = Text;
+type OldTimestamp__27916213 = Int;
+type OldUserProfile__416069324 = {name : Text};
+type Timestamp__301639476 = Int;
+type Timestamp__527237838 = Timestamp__301639476;
+type UserProfile__13417371 = {name : Text};
+type UserRole__1054455867 = {#admin; #guest; #user};
+actor ({
+  stable var _nextFileId : Nat;
+  stable var _totalDownloadCount : Nat;
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__1054455867>
+    };
+  in files :
+    Map__605269027<OldFileId__860741176, OldFileMetadata__1048324045>;
+  in nextFileId : {var value : Nat};
+  in tokenIndex :
+    Map__605269027<OldFileToken__1008643063, OldFileId__860741176>;
+  in totalDownloadCount : {var value : Nat};
+  in userProfiles : Map__605269027<Principal, OldUserProfile__416069324>
+}, {
+  stable var _nextFileId : Nat;
+  stable var _totalDownloadCount : Nat;
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__1054455867>
+    };
+  stable files :
+    {
+      var root : Node__46230540<FileId__681598994, FileMetadata__690150775>;
+      var size : Nat__490723111
+    };
+  stable nextFileId : {var value : Nat};
+  stable tokenIndex :
+    {
+      var root : Node__46230540<FileToken__265069520, FileId__681598994>;
+      var size : Nat__490723111
+    };
+  stable totalDownloadCount : {var value : Nat};
+  stable userProfiles :
+    {
+      var root : Node__46230540<Principal, UserProfile__13417371>;
+      var size : Nat__490723111
+    }
+}) ;

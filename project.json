@@ -1,0 +1,23 @@
+{
+  "overview": "FileVault is a secure file-sharing platform where users upload files and get unique, non-guessable download links. Features include expiry dates, QR code sharing, file renaming, admin controls, and global statistics.",
+  "features": [
+    "Secure file uploads with unique download tokens",
+    "Optional expiry dates for uploaded files",
+    "QR code sharing for download links",
+    "Inline file renaming for owners and admins",
+    "Super-admin panel with full file visibility",
+    "Global statistics: file count, storage, downloads",
+    "Automatic download on public link visit"
+  ],
+  "category": "file-sharing",
+  "tags": [
+    "file-sharing",
+    "upload",
+    "download",
+    "qr-code",
+    "admin",
+    "expiry",
+    "secure-links"
+  ],
+  "last_updated": "2026-04-08T13:29:13.990Z"
+}
